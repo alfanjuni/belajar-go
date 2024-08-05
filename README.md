@@ -16,7 +16,7 @@ This is a simple Todo List application built with Go, GORM, Gorilla Mux, and MyS
    cd todo-app
    ```
 
-   **Directory Structure**
+**Directory Structure**
 
 ```
 .
