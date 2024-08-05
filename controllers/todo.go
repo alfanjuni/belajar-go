@@ -3,33 +3,35 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"belajar-go/helpers"
 	"belajar-go/models"
+	"belajar-go/services"
 	"belajar-go/responses"
 
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-
-func Init(db *gorm.DB) {
-	DB = db
+type TodoController struct {
+	service services.TodoService
 }
 
-func GetTodos(w http.ResponseWriter, r *http.Request) {
-	var todos []models.Todo
-	result := DB.Find(&todos)
-	if result.Error != nil {
+func NewTodoController(service services.TodoService) *TodoController {
+	return &TodoController{service}
+}
+
+func (c *TodoController) GetTodos(w http.ResponseWriter, r *http.Request) {
+	todos, err := c.service.GetTodos()
+	if err != nil {
 		helpers.RespondError(w, http.StatusInternalServerError, "Error fetching todos")
 		return
 	}
 
-	helpers.RespondJSON(w, http.StatusOK, todos, responses.Meta{Total: int(result.RowsAffected)}, "OK")
+	helpers.RespondJSON(w, http.StatusOK, todos, responses.Meta{Total: len(todos)}, "OK")
 }
 
-func CreateTodo(w http.ResponseWriter, r *http.Request) {
+func (c *TodoController) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	var todo models.Todo
 	err := json.NewDecoder(r.Body).Decode(&todo)
 	if err != nil {
@@ -37,7 +39,7 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = DB.Create(&todo).Error
+	todo, err = c.service.CreateTodo(todo)
 	if err != nil {
 		helpers.RespondError(w, http.StatusInternalServerError, "Error creating todo")
 		return
@@ -46,10 +48,11 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	helpers.RespondJSON(w, http.StatusOK, todo, responses.Meta{Total: 1}, "Todo created")
 }
 
-func GetTodo(w http.ResponseWriter, r *http.Request) {
+func (c *TodoController) GetTodo(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var todo models.Todo
-	err := DB.First(&todo, params["id"]).Error
+	id, _ := strconv.Atoi(params["id"])
+
+	todo, err := c.service.GetTodoById(uint(id))
 	if err != nil {
 		helpers.RespondError(w, http.StatusNotFound, "Todo not found")
 		return
@@ -58,22 +61,19 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 	helpers.RespondJSON(w, http.StatusOK, todo, responses.Meta{Total: 1}, "OK")
 }
 
-func UpdateTodo(w http.ResponseWriter, r *http.Request) {
+func (c *TodoController) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var todo models.Todo
-	err := DB.First(&todo, params["id"]).Error
-	if err != nil {
-		helpers.RespondError(w, http.StatusNotFound, "Todo not found")
-		return
-	}
+	id, _ := strconv.Atoi(params["id"])
 
-	err = json.NewDecoder(r.Body).Decode(&todo)
+	var todo models.Todo
+	err := json.NewDecoder(r.Body).Decode(&todo)
 	if err != nil {
 		helpers.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err = DB.Save(&todo).Error
+	todo.ID = uint(id)
+	todo, err = c.service.UpdateTodo(todo)
 	if err != nil {
 		helpers.RespondError(w, http.StatusInternalServerError, "Error updating todo")
 		return
@@ -82,9 +82,11 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	helpers.RespondJSON(w, http.StatusOK, todo, responses.Meta{Total: 1}, "Todo updated")
 }
 
-func DeleteTodo(w http.ResponseWriter, r *http.Request) {
+func (c *TodoController) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	err := DB.Delete(&models.Todo{}, params["id"]).Error
+	id, _ := strconv.Atoi(params["id"])
+
+	err := c.service.DeleteTodo(uint(id))
 	if err != nil {
 		helpers.RespondError(w, http.StatusNotFound, "Todo not found")
 		return

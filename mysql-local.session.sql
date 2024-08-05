@@ -1,18 +1,12 @@
-CREATE TABLE IF NOT EXISTS `todos` (
-    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-    `created_at` datetime(3) DEFAULT NULL,
-    `updated_at` datetime(3) DEFAULT NULL,
-    `deleted_at` datetime(3) DEFAULT NULL,
-    `title` varchar(255) DEFAULT NULL,
-    `description` text,
-    `completed` tinyint(1) DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `idx_todos_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
-INSERT INTO todos (created_at, updated_at, title, description, completed) 
-VALUES (NOW(), NOW(), 'Learn Go', 'Learn how to create a REST API using Go', false);
+CREATE TABLE todos (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL
+);
 
 
 SELECT * from todos;
