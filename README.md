@@ -15,3 +15,23 @@ This is a simple Todo List application built with Go, GORM, Gorilla Mux, and MyS
    git clone https://github.com/alfanjuni/belajar-go.git
    cd todo-app
    ```
+
+   **Directory Structure**
+
+```
+.
+├── controllers
+│   └── todo.go
+├── helpers
+│   └── response.go
+├── models
+│   └── todo.go
+├── repositories
+│   └── todo_repository.go
+├── services
+│   └── todo_service.go
+├── main.go
+├── .env
+├── go.mod
+└── go.sum
+```
