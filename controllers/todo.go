@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"belajar-go/helpers"
 	"belajar-go/models"
+	"belajar-go/responses"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -18,52 +20,75 @@ func Init(db *gorm.DB) {
 
 func GetTodos(w http.ResponseWriter, r *http.Request) {
 	var todos []models.Todo
-	DB.Find(&todos)
-	json.NewEncoder(w).Encode(todos)
+	result := DB.Find(&todos)
+	if result.Error != nil {
+		helpers.RespondError(w, http.StatusInternalServerError, "Error fetching todos")
+		return
+	}
+
+	helpers.RespondJSON(w, http.StatusOK, todos, responses.Meta{Total: int(result.RowsAffected)}, "OK")
 }
 
 func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	var todo models.Todo
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := json.NewDecoder(r.Body).Decode(&todo)
+	if err != nil {
+		helpers.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	DB.Create(&todo)
-	json.NewEncoder(w).Encode(todo)
+
+	err = DB.Create(&todo).Error
+	if err != nil {
+		helpers.RespondError(w, http.StatusInternalServerError, "Error creating todo")
+		return
+	}
+
+	helpers.RespondJSON(w, http.StatusOK, todo, responses.Meta{Total: 1}, "Todo created")
 }
 
 func GetTodo(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var todo models.Todo
-	if err := DB.First(&todo, params["id"]).Error; err != nil {
-		http.Error(w, "Todo not found", http.StatusNotFound)
+	err := DB.First(&todo, params["id"]).Error
+	if err != nil {
+		helpers.RespondError(w, http.StatusNotFound, "Todo not found")
 		return
 	}
-	json.NewEncoder(w).Encode(todo)
+
+	helpers.RespondJSON(w, http.StatusOK, todo, responses.Meta{Total: 1}, "OK")
 }
 
 func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var todo models.Todo
-	if err := DB.First(&todo, params["id"]).Error; err != nil {
-		http.Error(w, "Todo not found", http.StatusNotFound)
+	err := DB.First(&todo, params["id"]).Error
+	if err != nil {
+		helpers.RespondError(w, http.StatusNotFound, "Todo not found")
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err = json.NewDecoder(r.Body).Decode(&todo)
+	if err != nil {
+		helpers.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	DB.Save(&todo)
-	json.NewEncoder(w).Encode(todo)
+	err = DB.Save(&todo).Error
+	if err != nil {
+		helpers.RespondError(w, http.StatusInternalServerError, "Error updating todo")
+		return
+	}
+
+	helpers.RespondJSON(w, http.StatusOK, todo, responses.Meta{Total: 1}, "Todo updated")
 }
 
 func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if err := DB.Delete(&models.Todo{}, params["id"]).Error; err != nil {
-		http.Error(w, "Todo not found", http.StatusNotFound)
+	err := DB.Delete(&models.Todo{}, params["id"]).Error
+	if err != nil {
+		helpers.RespondError(w, http.StatusNotFound, "Todo not found")
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]string{"message": "Todo deleted"})
+
+	helpers.RespondJSON(w, http.StatusOK, nil, responses.Meta{Total: 0}, "Todo deleted")
 }
