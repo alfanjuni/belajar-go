@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"belajar-go/controllers"
 	"belajar-go/models"
 )
 
@@ -41,67 +41,16 @@ func initDatabase() {
 
 func main() {
 	initDatabase()
+	controllers.Init(DB) // Initialize the controller with the DB instance
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/todos", getTodos).Methods("GET")
-	r.HandleFunc("/todos", createTodo).Methods("POST")
-	r.HandleFunc("/todos/{id}", getTodo).Methods("GET")
-	r.HandleFunc("/todos/{id}", updateTodo).Methods("PUT")
-	r.HandleFunc("/todos/{id}", deleteTodo).Methods("DELETE")
+	r.HandleFunc("/todos", controllers.GetTodos).Methods("GET")
+	r.HandleFunc("/todos", controllers.CreateTodo).Methods("POST")
+	r.HandleFunc("/todos/{id}", controllers.GetTodo).Methods("GET")
+	r.HandleFunc("/todos/{id}", controllers.UpdateTodo).Methods("PUT")
+	r.HandleFunc("/todos/{id}", controllers.DeleteTodo).Methods("DELETE")
 
 	log.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
-}
-
-func getTodos(w http.ResponseWriter, r *http.Request) {
-	var todos []models.Todo
-	DB.Find(&todos)
-	json.NewEncoder(w).Encode(todos)
-}
-
-func createTodo(w http.ResponseWriter, r *http.Request) {
-	var todo models.Todo
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	DB.Create(&todo)
-	json.NewEncoder(w).Encode(todo)
-}
-
-func getTodo(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	var todo models.Todo
-	if err := DB.First(&todo, params["id"]).Error; err != nil {
-		http.Error(w, "Todo not found", http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(todo)
-}
-
-func updateTodo(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	var todo models.Todo
-	if err := DB.First(&todo, params["id"]).Error; err != nil {
-		http.Error(w, "Todo not found", http.StatusNotFound)
-		return
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	DB.Save(&todo)
-	json.NewEncoder(w).Encode(todo)
-}
-
-func deleteTodo(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	if err := DB.Delete(&models.Todo{}, params["id"]).Error; err != nil {
-		http.Error(w, "Todo not found", http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(map[string]string{"message": "Todo deleted"})
 }
